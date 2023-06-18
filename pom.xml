@@ -13,6 +13,7 @@
         <module>jvm_upgradation</module>
         <module>mockito_unit_test</module>
         <module>mes_notes</module>
+        <module>powermock_unit_test</module>
     </modules>
 
     <properties>
