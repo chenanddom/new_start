@@ -1,9 +1,6 @@
-package com.itdom.powermock.unittest.mockstatic;
+package com.itdom.powermock.unittest.finalclass;
 
-import com.itdom.powermock.unittest.commen.User;
-import com.itdom.powermock.unittest.commen.UserDao4Static;
-import com.itdom.powermock.unittest.commen.UserService;
-import com.itdom.powermock.unittest.commen.UserService4Static;
+import com.itdom.powermock.unittest.commen.*;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.powermock.api.mockito.PowerMockito;
@@ -17,16 +14,16 @@ import static org.hamcrest.core.IsEqual.equalTo;
  * 模拟静态方法
  */
 @RunWith(PowerMockRunner.class)
-@PrepareForTest(value = {UserService4Static.class, UserDao4Static.class})
+@PrepareForTest(value = {UserService4Final.class, UserDao4Final.class})
 public class MockStaticTest {
 
     @Test
     public void queryCountTest() {
-        PowerMockito.mockStatic(UserDao4Static.class);
-        PowerMockito.when(UserDao4Static.getCount()).thenReturn(10);
-        UserService4Static userService4Static = new UserService4Static();
-        int count = userService4Static.queryUserCount();
-
+        UserDao4Final userDao4Final = PowerMockito.mock(UserDao4Final.class);
+        System.out.println(userDao4Final.getClass());
+        PowerMockito.when(userDao4Final.getCount()).thenReturn(10);
+        UserService4Final userService4Final = new UserService4Final(userDao4Final);
+        int count = userService4Final.queryUserCount();
         assertThat(10, equalTo(count));
 
     }

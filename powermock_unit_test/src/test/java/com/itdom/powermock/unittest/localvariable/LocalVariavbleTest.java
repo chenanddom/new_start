@@ -29,6 +29,7 @@ public class LocalVariavbleTest {
         try {
             UserService4LocalVariable userService = new UserService4LocalVariable();
             UserDao userDao = PowerMockito.mock(UserDao.class);
+            System.out.println(userDao.getClass());
             PowerMockito.whenNew(UserDao.class).withNoArguments().thenReturn(userDao);
             doReturn(10).when(userDao).getCount();
             int count = userService.queryUserCount();
