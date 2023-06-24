@@ -86,6 +86,13 @@ C:\Users\chendom>jinfo -flag StringTableSize 15816
 
 ```
 
+## String的操作图解
+[字节码刨析](./files/String操作-1.PNG)
+[图解](./files/String操作-2.PNG)
+
+* 注意:字节码中的param参数时存在第一位，第0位是用来存储this关键字的。
+
+
 
 ## String的内存分配
 * JDK6 及以前，字符串常量池存放在永久代
