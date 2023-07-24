@@ -207,14 +207,108 @@ Reference子类中只有终结器引用是包内可见的，其他三种引用�
   * [虚引用示例](./src/main/java/chapter16/PhantomReferenceTest.java)
   唯一目的就是能在这个对象被收集器回收时收到一个系统通知。
 
+### 评估GC的性能指标
+* 吞吐量:运行用户代码的时间占总运行时间的比例
+  * (代码运行时间/(程序运行时间+内存回收的时间))
+* 垃圾收集开销:吞吐量的补数据、，垃圾收集所用时间与总运行时间的比例。
+* 暂停时间:执行垃圾收集时，程序的工作现场被暂停的时间。
+* 收集频率:相对于应用程序的执行，收集操作发生的频率。
+* 内存占用:Java对区所占的内存大小。
+* 快速:一个对象从诞生到被回收所经历的时间
 
 
+# 垃圾收集器
+[垃圾收集器的组合使用](./files/垃圾收集器的组合-1.png)
+
+```text
+1、连各个收集器之间有连线，表明它们可以搭配使用：
+Serial/Serial Old、Serial/CMS、ParNew/Serial Old、ParNew/CMS、
+Parallel Scavenge/Serial Old,Parallel Scavenge/Parallel Old、G1
+2、其中Serial Old作为CMS出现"Concurrent Model Failure"失败的后备预案。
+3、(红色虚线)由于维护何兼容性测试的成本，在JDK1.8时间将Serial+CMS、ParNew+Serial Old这两个组合声明为废弃（JEP 173）
+   ,并且在JDK9中完全取消了这些组合的支持(JEP124),`即：移除
+4、(绿色虚线)JDK 14中:弃用Parallel Scavenge和Serial Old GC组合(JEP 366)   
+```
+[查看JVM参数示例](./src/main/java/chapter17/GCCommandLineTest.java)
+使用命令行看`
+```shell
+C:\Users\chendom>jinfo -flag UseParallelGC 7600
+-XX:+UseParallelGC
+C:\Users\chendom>jinfo -flag UseParallelOldGC 7600
+-XX:+UseParallelOldGC //说明JDK1.8默认使用的是ParallelGC
+```
 
 
+##Serial回收器：串行回收
+* Serial收集器是最基本、历史最悠久的垃圾收集器了。JDK1.3之前回收新生代唯一的选择。
+* Serial收集器作为HotSpot中Client模式下的默认新生代垃圾收集器。
+* Serial收集器采用复制算法，串行回收和"Stop-the-World"机制的方式执行内存回收
+* 除了年轻代之外，Serial收集器还提供了用于执行老年代垃圾收集的Serial收集器。Serial Old收集器同样采用了串行回收和"Stop the World"机制，
+  只不过内存回收算法使用的是标记-压缩算法。
+  * Serial Old是运行在Client模式下默认的老年代的垃圾回收器
+  * Serial Old在Server模式下主要有两个用途:1.与新生代的Parallel Scavenge配合使用 2、作为老年代CMS收集器的后背垃圾收集方案.
 
+* 优势：
+简单高效(与其他收集器的单线程比)，对于限定单个CPU的环境来说，Serial收集器由于没有线程交互的开销，专心做垃圾收集自然可以获得最高的大年初收集效率。
+运行在Client模式下的虚拟机是个不错的选择。
+* HotSpot虚拟机中，使用-XX:+UseSerialGC参数可以指定年轻代和老年带都使用串行收集器
 
+总结:
+这种垃圾收集器了解即可，现在一般都不使用串行垃圾收集器了。而且在限定单核CPU才可以使用，现在一般不存在单核的设备了。
+对于交互较强的应用而言，这种垃圾收集器不是被接受的。一般在Java web应用程序中不会采用串行垃圾收集器。
 
+## ParNew垃圾收集器
+ParNew是Serial收集器的多线程版本，Par是Parallel的缩写，New代表了在新生代收集
+ParNew采用的是并行回收的方式执行内存的回收外，两款垃圾收集器之间几乎没有任何区别。ParNew收集器在年轻代中同样采用复制算法，"STW"机制。
+ParNew是很多JVM运行在Server模式下新生代的默认垃圾收集器.
+![GC_ParNew_1](./files/GC_ParNew_1.png)
 
+   ParNew垃圾收集器可以在多CPU的环境下，充分的利用CPU的资源优势，可以更快的完成
+垃圾收集，提升吞吐量。
+    但是在单个CPU的环境下，由于线程的切换需要更多的开销，所以，在这种情况下ParNew未必
+能够比Serial好
+```shell
+ -XX:+UseParNewGC设置使用ParNew垃圾收集器,
+-XX:InitialHeapSize=266668608 -XX:MaxHeapSize=4266697728 -XX:MaxNewSize=348966912 -XX:MaxTenuringThreshold=6 -XX:OldPLABSize=16 -XX:+PrintCommandLineFlags -XX:+UseCompressedClassPointers -XX:+UseCompressedOops -XX:+UseConcMarkSweepGC -XX:-UseLargePagesIndividualAllocation -XX:+UseParNewGC
+ 在JDK7以及以前，默认的都是ParNew配合SerialOld使用，但是到了JDK8，就直接去掉了这个组合，转而使用ParNew+ConcMarkSweep+SerialOld(备选)。
+ -XX:ParallelGCThreads=4设置并行收集垃圾的线程数量
+ -XX:InitialHeapSize=266668608 -XX:MaxHeapSize=4266697728 -XX:MaxNewSize=348966912 -XX:MaxTenuringThreshold=6 -XX:OldPLABSize=16 -XX:ParallelGCThreads=4 -XX:+PrintCommandLineFlags -XX:+UseCompressedClassPointers -XX:+UseCompressedOops -XX:+UseConcMarkSweepGC -XX:-UseLargePagesIndividualAllocation -XX:+UseParNewGC
+  
+```
+
+##ParallelGC
+ParallelGC和ParNew一样都是并行回收垃圾的典型垃圾收集器，都采用了复制算法，并行回收和"STW"机制。
+但是Parallel和ParNew有两点不一样：
+1、Parallel Scanvenge收集器的目标是达到一个可控制的吞吐量，它也被称为吞吐量有限的垃圾收集器。
+2、自适应调节策略也是Parallel Scanvenge 与ParNew的一个重要区别
+
+* Parallel Scanvenge适合在不需要太多交互的任务，在JDK1.6的时候，Parallel提供了执行老年代的垃圾收集器ParallelOld,用来代替老年代
+  Serial Old收集器
+* Parallel Old收集器采用的是标记-压缩算法，但同样是基于并行回收、"Stop-the-World"机制。
+
+![Parallel垃圾收集器](./files/GC_Parallel_Scanvenge_1.PNG)
+
+### 相关参数设置
+* -XX:+UseParallelGC 手动设置年轻代使用Parallel并行收集器执行内存回收任务
+* -XX:+UseParallelOldGC 手动指定老年代是并行回收收集器
+  * 分别使用与新生代和老年代。默认jdk8是开启的。
+  * 上面的参数，默认开启一个，另外一个是回被开启的(互相激活)
+* -XX:ParallelGCThreads 设置年轻代并行收集器的线程数。一般地，嘴还与CPU数量相等
+  以避免过多的线程数影响到垃圾收集性能。
+  * 默认情况下，当CPU小于8时，ParallelGCThreads的值等于CPU数量。
+  * 当CPU数量大于8时，ParallelGCThreads的值等于3+[5*CPU_COUNT]/8
+* -XX:+MaxGCPauseMillis 设置垃圾收集器最大停顿时间(STW时间)，单位为毫秒
+  * 为了尽可能的把停顿时间控制在MaxGCPauseMills以内，收集器在工作事会跳转Java堆大小或者其他一些参数。
+  * 对于用户来说，停顿时间越短体验越好。但是，在啊服务器端，我们注重的高并发，整体的吞吐量。所以服务器端适合Parallel，进行控制
+  * 该参数使用需要谨慎，
+* -XX:GCTimeRatio垃圾收集时间占总时间的比例(=1/(N+1)).
+  用于衡量吞吐量的大小
+  * 取值范围（1，100）。默认是99，也就是垃圾收集时间不超过1%。
+  * 与前一个-XX:MaxGCPauseMillis参数有一定矛盾。暂停时间越长，Radio参数就容易超过设定的比例。
+* -XX:+UseAdativeSizePolicy 设置Parallel Scavenge收集器具有自适应调节策略
+  * 在这种模式下，年轻回到的大小、Eden和Survivor的比例，晋升老年代的对象年龄等参数会被自定调整，i达到在堆大小、吞吐量和停顿时间之间的平衡点。
+  * 在手动调优比较困难的场合，可以直接使用这种自适应的方式，仅指定虚拟机的最大堆、目标的吞吐量(GCTimeRatio)和停顿是按(MaxGCPauseMillis),
+    让虚拟机自己完成调优工作。
 
 
 
