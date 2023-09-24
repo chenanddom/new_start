@@ -14,6 +14,7 @@
         <module>mockito_unit_test</module>
         <module>mes_notes</module>
         <module>powermock_unit_test</module>
+        <module>design-ddd</module>
     </modules>
 
     <properties>
