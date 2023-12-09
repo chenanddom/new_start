@@ -15,6 +15,7 @@
         <module>mes_notes</module>
         <module>powermock_unit_test</module>
         <module>design-ddd</module>
+        <module>learn-jdbc</module>
     </modules>
 
     <properties>
