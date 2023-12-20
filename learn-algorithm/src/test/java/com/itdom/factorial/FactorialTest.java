@@ -1,5 +1,6 @@
 package com.itdom.factorial;
 
+import com.itdom.recursion.factorial.Factorial;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;

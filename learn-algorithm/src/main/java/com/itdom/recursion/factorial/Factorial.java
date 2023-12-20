@@ -1,4 +1,4 @@
-package com.itdom.factorial;
+package com.itdom.recursion.factorial;
 
 /**
  * 阶乘使用递归的算法
