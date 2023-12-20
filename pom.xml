@@ -16,6 +16,7 @@
         <module>powermock_unit_test</module>
         <module>design-ddd</module>
         <module>learn-jdbc</module>
+        <module>learn-algorithm</module>
     </modules>
 
     <properties>
